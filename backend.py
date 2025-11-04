@@ -119,11 +119,16 @@ async def get_languages():
 async def transcribe_audio(audio: UploadFile = File(...)):
     """Transcribe audio to text using Whisper"""
     try:
-        # Save uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+        logger.info(f"🎤 Received audio file: {audio.filename}, type: {audio.content_type}")
+        
+        # Save uploaded file temporarily with original extension
+        file_ext = os.path.splitext(audio.filename)[1] or ".webm"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as temp_file:
             content = await audio.read()
             temp_file.write(content)
             temp_path = temp_file.name
+        
+        logger.info(f"📁 Saved to: {temp_path}, size: {os.path.getsize(temp_path)} bytes")
         
         # Transcribe
         text = await storyteller.transcribe_audio(temp_path)
@@ -131,11 +136,14 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         # Clean up
         os.unlink(temp_path)
         
+        logger.info(f"✅ Transcription successful: {text[:50]}...")
         return {"text": text}
         
     except Exception as e:
         logger.error(f"❌ Error transcribing audio: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 
 @app.post("/api/chat", response_model=ChatResponse)

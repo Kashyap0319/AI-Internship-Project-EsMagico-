@@ -82,62 +82,118 @@
 
 /* Book Showcase */
 .books-showcase {
-  padding: 24px 40px;
-  background: linear-gradient(to bottom, rgba(99, 102, 241, 0.03), transparent);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 16px 40px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.04), rgba(139, 92, 246, 0.03));
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.books-showcase::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .books-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8b5cf6;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 16px;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .books-grid {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
+  position: relative;
+  z-index: 1;
 }
 
 .book-card {
-  flex: 1;
-  max-width: 180px;
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
+  flex: 0 1 160px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbff 100%);
+  border-radius: 20px;
+  padding: 12px;
   box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    0 8px 20px rgba(99, 102, 241, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
-  perspective: 1000px;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.book-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 20px;
+  padding: 2px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.book-card:hover::before {
+  opacity: 1;
 }
 
 .book-card:hover {
-  transform: translateY(-8px) scale(1.02);
+  transform: translateY(-12px) scale(1.05);
   box-shadow: 
-    0 20px 40px rgba(99, 102, 241, 0.25),
-    0 0 0 1px rgba(99, 102, 241, 0.15);
+    0 25px 50px rgba(99, 102, 241, 0.3),
+    0 10px 25px rgba(139, 92, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
-.book-card:hover .book-cover-wrapper {
-  transform: rotateY(5deg) rotateX(-5deg);
+.book-card:active {
+  transform: translateY(-8px) scale(1.02);
 }
 
 .book-cover-wrapper {
   position: relative;
   width: 100%;
-  height: 140px;
-  margin-bottom: 12px;
-  border-radius: 12px;
+  height: 120px;
+  margin-bottom: 10px;
+  border-radius: 14px;
   overflow: hidden;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-style: preserve-3d;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.book-card:hover .book-cover-wrapper {
+  transform: rotateY(-8deg) rotateX(4deg) scale(1.03);
+  box-shadow: 
+    0 10px 30px rgba(99, 102, 241, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .book-cover-image {
@@ -145,34 +201,29 @@
   height: 100%;
   object-fit: cover;
   border-radius: 12px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
+  transition: all 0.4s ease;
   display: block;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  filter: brightness(1) saturate(1);
 }
 
-.book-cover-image:hover {
-  box-shadow: 
-    0 8px 20px rgba(0, 0, 0, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 0.4);
+.book-card:hover .book-cover-image {
+  filter: brightness(1.1) saturate(1.2);
+  transform: scale(1.05);
 }
 
 .book-cover {
   width: 100%;
-  height: 140px;
-  border-radius: 12px;
+  height: 120px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
   display: none;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
-  border: 2px solid rgba(0, 0, 0, 0.05);
+  font-size: 42px;
   position: absolute;
   top: 0;
   left: 0;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
 }
 
 .book-cover.fallback {
@@ -180,24 +231,31 @@
 }
 
 .book-cover.alice {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
 }
 
 .book-cover.gulliver {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
 }
 
 .book-cover.arabian {
-  background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+  background: linear-gradient(135deg, #fce7f3 0%, #f9a8d4 100%);
 }
 
 .book-title {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   color: #1e293b;
   text-align: center;
   line-height: 1.3;
   margin: 0;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+
+.book-card:hover .book-title {
+  color: #6366f1;
+  transform: scale(1.05);
 }
 
 /* Messages Area */
@@ -450,6 +508,7 @@
   background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(244, 114, 182, 0.3);
+  position: relative;
 }
 
 .mic-button:hover:not(:disabled) {
@@ -460,6 +519,30 @@
 .mic-button.recording {
   animation: pulse 1.5s ease-in-out infinite;
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.recording-pulse {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: recording-blink 1s ease-in-out infinite;
+}
+
+.recording-text {
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+  margin-left: 8px;
+  animation: recording-blink 1s ease-in-out infinite;
+}
+
+@keyframes recording-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 @keyframes pulse {

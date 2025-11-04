@@ -4,6 +4,7 @@ Handles text generation (Gemini/OpenAI), image generation (Stability AI/OpenAI),
 audio generation (ElevenLabs), and audio transcription (Whisper)
 """
 
+import os
 import logging
 import hashlib
 import aiohttp
@@ -111,14 +112,18 @@ class Storyteller:
         if generate_image and config.IMAGE_GENERATION_ENABLED:
             tasks.append(self._generate_image(question, answer))
         else:
-            tasks.append(asyncio.sleep(0, result=None))
+            tasks.append(asyncio.create_task(asyncio.sleep(0)))
         
         if generate_audio and config.AUDIO_ENABLED:
             tasks.append(self._generate_audio(answer, language))
         else:
-            tasks.append(asyncio.sleep(0, result=None))
+            tasks.append(asyncio.create_task(asyncio.sleep(0)))
         
-        image_url, audio_url = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Handle results with proper None fallback
+        image_url = results[0] if not isinstance(results[0], Exception) and results[0] is not None else None
+        audio_url = results[1] if not isinstance(results[1], Exception) and results[1] is not None else None
         
         return {
             "answer": answer,
@@ -250,112 +255,69 @@ class Storyteller:
     
     async def _generate_image(self, question: str, answer: str) -> str:
         """
-        Generate storybook-style image using Stability AI or OpenAI DALL-E
+        Generate AI image based on answer content using Pollinations.ai (FREE)
         
         Args:
             question: Original question
             answer: Generated answer
             
         Returns:
-            URL path to generated image
+            URL to generated AI image
         """
-        # Create image prompt
-        prompt = self._create_image_prompt(question, answer)
-        
-        # Try OpenAI DALL-E first if configured
-        if config.OPENAI_API_KEY and self.openai_client:
-            try:
-                response = await self.openai_client.images.generate(
-                    model="dall-e-3",
-                    prompt=prompt,
-                    size="1024x1024",
-                    quality="standard",
-                    n=1
-                )
-                
-                # Download and save image
-                import base64
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(response.data[0].url) as img_response:
-                        if img_response.status == 200:
-                            image_data = await img_response.read()
-                            
-                            filename = hashlib.md5(prompt.encode()).hexdigest() + ".png"
-                            filepath = config.IMAGES_DIR / filename
-                            
-                            with open(filepath, "wb") as f:
-                                f.write(image_data)
-                            
-                            logger.info(f"✅ Image generated via DALL-E: {filename}")
-                            return f"/static/images/{filename}"
-            except Exception as e:
-                logger.warning(f"DALL-E failed, trying Stability AI: {str(e)}")
-        
-        # Fallback to Stability AI
-        if not config.STABILITY_API_KEY:
-            logger.warning("No image API configured")
-            return None
-        
         try:
-            # Call Stability AI API
+            if not config.IMAGE_GENERATION_ENABLED:
+                return None
+            
+            logger.info("🎨 Generating AI image from answer...")
+            
+            # Create image prompt from answer
+            prompt = self._create_image_prompt_from_answer(answer)
+            
+            # Use Pollinations.ai FREE image generation API
+            # No API key needed, just URL-based generation
+            import urllib.parse
+            encoded_prompt = urllib.parse.quote(prompt)
+            
+            # Pollinations.ai endpoint (totally free, no limits)
+            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=512&height=512&model=flux&nologo=true&enhance=true"
+            
+            # Download and save the image
             async with aiohttp.ClientSession() as session:
-                headers = {
-                    "Authorization": f"Bearer {config.STABILITY_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                
-                payload = {
-                    "text_prompts": [
-                        {
-                            "text": prompt,
-                            "weight": 1
-                        },
-                        {
-                            "text": "blurry, bad quality, distorted, ugly, modern, photograph, realistic",
-                            "weight": -1
-                        }
-                    ],
-                    "cfg_scale": 7,
-                    "height": 512,  # REDUCED from 1024 to 512 (half size)
-                    "width": 512,   # REDUCED from 1024 to 512 (half size)
-                    "steps": config.IMAGE_STEPS,
-                    "samples": 1,
-                    "style_preset": config.IMAGE_STYLE
-                }
-                
-                async with session.post(
-                    config.STABILITY_API_URL,
-                    headers=headers,
-                    json=payload
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        logger.error(f"Stability API error: {error_text}")
-                        return None
-                    
-                    data = await response.json()
-                    
-                    # Save image
-                    if data.get("artifacts"):
-                        import base64
+                async with session.get(image_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status == 200:
+                        image_data = await response.read()
                         
-                        image_data = base64.b64decode(data["artifacts"][0]["base64"])
-                        
-                        # Generate unique filename
+                        # Save image locally
                         filename = hashlib.md5(prompt.encode()).hexdigest() + ".png"
                         filepath = config.IMAGES_DIR / filename
                         
                         with open(filepath, "wb") as f:
                             f.write(image_data)
                         
-                        logger.info(f"✅ Image generated via Stability: {filename}")
+                        logger.info(f"✅ AI image generated: {filename}")
                         return f"/static/images/{filename}"
-                    
-                    return None
-                    
+                    else:
+                        logger.warning(f"⚠️ Image API returned status {response.status}")
+                        return None
+                        
         except Exception as e:
-            logger.error(f"❌ Error generating image: {str(e)}")
+            logger.error(f"❌ Image generation error: {str(e)}")
             return None
+    
+    def _create_image_prompt_from_answer(self, answer: str) -> str:
+        """Create AI image prompt from the answer content"""
+        # Remove emojis and clean text
+        import re
+        clean_answer = re.sub(r'[^\w\s.,!?\'\"-]', '', answer)
+        
+        # Take first 2 sentences for context
+        sentences = clean_answer.split('.')[:2]
+        context = '. '.join(sentences).strip()
+        
+        # Create storybook illustration prompt
+        prompt = f"Whimsical storybook illustration: {context}. Fantasy art style, colorful, magical, detailed, classic literature, fairy tale aesthetic"
+        
+        return prompt[:500]  # Limit length
     
     async def _generate_audio(self, text: str, language: str = "en") -> str:
         """
@@ -428,22 +390,37 @@ class Storyteller:
             Transcribed text
         """
         if not self.whisper_model:
+            logger.error("❌ Whisper model not initialized")
             raise Exception("Whisper model not initialized")
         
         try:
-            # Transcribe
+            logger.info(f"🎙️ Transcribing audio file: {audio_path}")
+            
+            # Check if file exists
+            if not os.path.exists(audio_path):
+                raise Exception(f"Audio file not found: {audio_path}")
+            
+            # Transcribe (Whisper handles various audio formats including webm)
             result = await asyncio.to_thread(
                 self.whisper_model.transcribe,
-                audio_path
+                audio_path,
+                fp16=False  # Disable fp16 for CPU compatibility
             )
             
             text = result["text"].strip()
+            
+            if not text:
+                logger.warning("⚠️ Transcription returned empty text")
+                return "Sorry, I couldn't hear anything. Please try again."
+            
             logger.info(f"✅ Audio transcribed: {text[:100]}...")
             return text
             
         except Exception as e:
             logger.error(f"❌ Error transcribing audio: {str(e)}")
-            raise
+            import traceback
+            logger.error(traceback.format_exc())
+            raise Exception(f"Transcription failed: {str(e)}")
     
     def _create_image_prompt(self, question: str, answer: str) -> str:
         """

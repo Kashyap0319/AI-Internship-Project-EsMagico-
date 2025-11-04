@@ -33,25 +33,24 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # LLM Configuration
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")  # Options: "gemini" or "openai"
-LLM_MODEL = "gemini-2.0-flash" if LLM_PROVIDER == "gemini" else "gpt-4o-mini"
-LLM_TEMPERATURE = 0.8
-LLM_MAX_TOKENS = 512
+LLM_MODEL = "gemini-2.0-flash-exp" if LLM_PROVIDER == "gemini" else "gpt-4o-mini"
+LLM_TEMPERATURE = 0.9  # More creative responses
+LLM_MAX_TOKENS = 800  # Longer, better answers
 
 # Embedding Model Configuration
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 # CPU-friendly, fast, accurate
 
 # Retrieval Configuration
-CHUNK_SIZE = 1200  # Balanced size for context vs memory
-CHUNK_OVERLAP = 250  # Good continuity without excessive overlap
-TOP_K_RESULTS = 5  # Number of relevant chunks to retrieve (used as default)
+CHUNK_SIZE = 1000  # Optimized for faster processing
+CHUNK_OVERLAP = 200  # Good continuity
+TOP_K_RESULTS = 3  # Faster, more focused results
 
-# Image Generation Configuration (Stability AI)
-IMAGE_GENERATION_ENABLED = True
-STABILITY_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
-IMAGE_WIDTH = 1024
-IMAGE_HEIGHT = 1024
-IMAGE_STEPS = 30
+# Image Generation Configuration (Using Gemini Imagen)
+IMAGE_GENERATION_ENABLED = True  # Enable image generation with answers
+IMAGE_PROVIDER = "gemini"  # Options: "gemini" or "stability"
+IMAGE_WIDTH = 512
+IMAGE_HEIGHT = 512
 IMAGE_STYLE = "fantasy-art"  # For storybook-style images
 
 # Audio Configuration (ElevenLabs)
@@ -95,9 +94,8 @@ not to solve the mysteries of the universe! Try asking me something from the cla
 
 # FastAPI Configuration
 API_HOST = "0.0.0.0"
-API_PORT = 8000
-API_RELOAD = True  # Set to False in production
-# Allow all origins during development to avoid port-mismatch issues
+API_PORT = 9000
+API_RELOAD = False  # Production mode for stability
 CORS_ORIGINS = ["*"]
 
 # Multi-language Support
@@ -130,7 +128,12 @@ SUGGESTED_QUESTIONS = [
     "What was the Queen of Hearts obsessed with?",
     "Describe Gulliver's visit to the land of giants",
     "What did the Caterpillar tell Alice?",
+    "Tell me about Aladdin and the magic lamp",
+    "What adventures did Sinbad have?",
+    "How did Scheherazade save her life?",
+    "What wishes were granted by the genie?",
     "Why was the Mock Turtle so sad?",
     "What bizarre games did they play in Wonderland?",
     "How did Gulliver escape from Lilliput?",
+    "Tell me about the flying carpet in Arabian Nights",
 ]

@@ -103,23 +103,48 @@ function App() {
       const recorder = new MediaRecorder(stream)
       const chunks = []
 
-      recorder.ondataavailable = (e) => chunks.push(e.data)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data)
+        }
+      }
       
       recorder.onstop = async () => {
+        console.log('🎤 Recording stopped, processing...')
         const blob = new Blob(chunks, { type: 'audio/webm' })
+        console.log('📦 Audio blob size:', blob.size, 'bytes')
+        
+        if (blob.size === 0) {
+          alert('❌ No audio recorded. Please try again.')
+          stream.getTracks().forEach(track => track.stop())
+          return
+        }
+        
         const formData = new FormData()
         formData.append('audio', blob, 'recording.webm')
 
         try {
           setIsLoading(true)
+          console.log('🚀 Sending audio for transcription...')
+          
           const response = await axios.post(`${API_BASE}/transcribe`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           })
           
+          console.log('✅ Transcription received:', response.data.text)
           setInputValue(response.data.text)
           setIsLoading(false)
+          
+          // Auto-submit after transcription
+          setTimeout(() => {
+            if (response.data.text && response.data.text.trim()) {
+              handleSend(response.data.text)
+            }
+          }, 500)
+          
         } catch (error) {
-          console.error('Transcription error:', error)
+          console.error('❌ Transcription error:', error)
+          alert('Failed to transcribe audio. Please try typing instead.')
           setIsLoading(false)
         }
 
@@ -127,11 +152,12 @@ function App() {
       }
 
       recorder.start()
+      console.log('🎙️ Recording started...')
       setMediaRecorder(recorder)
       setIsRecording(true)
     } catch (error) {
-      console.error('Microphone access error:', error)
-      alert('Microphone access denied or not available')
+      console.error('❌ Microphone access error:', error)
+      alert('🎤 Microphone access denied! Please allow microphone access and try again.')
     }
   }
 
@@ -176,7 +202,7 @@ function App() {
             <div className="book-card">
               <div className="book-cover-wrapper">
                 <img 
-                  src="https://www.gutenberg.org/cache/epub/11/pg11.cover.medium.jpg" 
+                  src="/covers/alice.jpg" 
                   alt="Alice in Wonderland"
                   className="book-cover-image"
                   onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
@@ -188,7 +214,7 @@ function App() {
             <div className="book-card">
               <div className="book-cover-wrapper">
                 <img 
-                  src="https://www.gutenberg.org/cache/epub/829/pg829.cover.medium.jpg" 
+                  src="/covers/gulliver.jpg" 
                   alt="Gulliver's Travels"
                   className="book-cover-image"
                   onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
@@ -196,6 +222,18 @@ function App() {
                 <div className="book-cover gulliver fallback">⛵</div>
               </div>
               <p className="book-title">Gulliver's Travels</p>
+            </div>
+            <div className="book-card">
+              <div className="book-cover-wrapper">
+                <img 
+                  src="/covers/arabian.jpg" 
+                  alt="Arabian Nights"
+                  className="book-cover-image"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                />
+                <div className="book-cover arabian fallback">🧞</div>
+              </div>
+              <p className="book-title">Arabian Nights</p>
             </div>
           </div>
         </div>
@@ -229,10 +267,10 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Suggestions */}
-        {messages.length === 0 && suggestions.length > 0 && (
+        {/* Suggestions - Always show, not just when empty */}
+        {suggestions.length > 0 && (
           <div className="suggestions-container">
-            <p className="suggestions-label">Try asking:</p>
+            <p className="suggestions-label">{messages.length === 0 ? 'Try asking:' : 'More questions:'}</p>
             <div className="suggestions-pills">
               {visibleSuggestions.map((suggestion, idx) => (
                 <SuggestionPill 
@@ -272,15 +310,23 @@ function App() {
               className="chat-input"
             />
             
-            {/* Mic Button */}
+            {/* Mic Button with Recording Indicator */}
             <button
               onClick={isRecording ? stopRecording : startRecording}
               className={`mic-button ${isRecording ? 'recording' : ''}`}
               disabled={isLoading}
               title={isRecording ? 'Stop recording' : 'Voice input'}
             >
-              {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+              {isRecording ? (
+                <>
+                  <MicOff size={20} />
+                  <span className="recording-pulse"></span>
+                </>
+              ) : (
+                <Mic size={20} />
+              )}
             </button>
+            {isRecording && <span className="recording-text">🔴 Recording...</span>}
             
             <button
               onClick={() => handleSend()}

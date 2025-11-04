@@ -1,10 +1,12 @@
 """
 Document Processor Module
 Handles PDF ingestion, text extraction, chunking, and embedding storage
-Lightweight in-memory FAISS-like approach for CPU-friendly semantic search
+Lightweight in-memory approach with disk caching for fast startup
 """
 
 import logging
+import pickle
+import hashlib
 from pathlib import Path
 from typing import List, Tuple
 import PyPDF2
@@ -18,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentProcessor:
-    """Handles document ingestion and in-memory embedding storage"""
+    """Handles document ingestion and in-memory embedding storage with caching"""
     
     def __init__(self):
         """Initialize the document processor with embeddings model"""
@@ -32,7 +34,48 @@ class DocumentProcessor:
         self.embeddings = None  # Numpy array of embeddings
         self.metadata = []  # List of metadata dicts
         
-        logger.info("Document processor initialized")
+        # Cache directory
+        self.cache_dir = config.DATA_DIR / "cache"
+        self.cache_dir.mkdir(exist_ok=True)
+        
+        logger.info("Document processor initialized with caching enabled")
+    
+    def _get_cache_path(self, pdf_path: str) -> Path:
+        """Get cache file path for a PDF"""
+        pdf_file = Path(pdf_path)
+        # Create hash of PDF path and modification time
+        file_hash = hashlib.md5(f"{pdf_file.name}_{pdf_file.stat().st_mtime}".encode()).hexdigest()
+        return self.cache_dir / f"{file_hash}.pkl"
+    
+    def _load_from_cache(self, pdf_path: str) -> Tuple[List[str], List[dict], np.ndarray]:
+        """Load cached embeddings for a PDF"""
+        cache_path = self._get_cache_path(pdf_path)
+        
+        if cache_path.exists():
+            try:
+                with open(cache_path, 'rb') as f:
+                    cached_data = pickle.load(f)
+                logger.info(f"✅ Loaded {len(cached_data['chunks'])} chunks from cache for {Path(pdf_path).name}")
+                return cached_data['chunks'], cached_data['metadata'], cached_data['embeddings']
+            except Exception as e:
+                logger.warning(f"Cache load failed: {e}, will regenerate")
+        
+        return None, None, None
+    
+    def _save_to_cache(self, pdf_path: str, chunks: List[str], metadata: List[dict], embeddings: np.ndarray):
+        """Save embeddings to cache"""
+        cache_path = self._get_cache_path(pdf_path)
+        
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump({
+                    'chunks': chunks,
+                    'metadata': metadata,
+                    'embeddings': embeddings
+                }, f)
+            logger.info(f"💾 Cached {len(chunks)} chunks for {Path(pdf_path).name}")
+        except Exception as e:
+            logger.warning(f"Cache save failed: {e}")
     
     def extract_text_from_pdf(self, pdf_path: str) -> str:
         """
@@ -113,7 +156,7 @@ class DocumentProcessor:
     
     def process_pdfs(self, pdf_directory: str = None) -> int:
         """
-        Process all PDFs and create in-memory embeddings
+        Process all PDFs and create in-memory embeddings with caching
         
         Args:
             pdf_directory: Path to directory containing PDFs
@@ -139,41 +182,69 @@ class DocumentProcessor:
         
         all_chunks = []
         all_metadata = []
+        all_embeddings_list = []
         
         for pdf_file in pdf_files:
             try:
-                # Extract text
-                text = self.extract_text_from_pdf(str(pdf_file))
+                # Try to load from cache first
+                cached_chunks, cached_metadata, cached_embeddings = self._load_from_cache(str(pdf_file))
                 
-                if text:
-                    # Chunk text
-                    chunks_with_meta = self.chunk_text(text, pdf_file.name)
+                if cached_chunks is not None:
+                    # Use cached data
+                    all_chunks.extend(cached_chunks)
+                    all_metadata.extend(cached_metadata)
+                    all_embeddings_list.append(cached_embeddings)
+                else:
+                    # Process PDF from scratch
+                    logger.info(f"📄 Processing {pdf_file.name}...")
+                    text = self.extract_text_from_pdf(str(pdf_file))
                     
-                    for chunk, meta in chunks_with_meta:
-                        all_chunks.append(chunk)
-                        all_metadata.append(meta)
-                    
-                    logger.info(f"Created {len(chunks_with_meta)} chunks from {pdf_file.name}")
+                    if text:
+                        # Chunk text
+                        chunks_with_meta = self.chunk_text(text, pdf_file.name)
+                        
+                        pdf_chunks = []
+                        pdf_metadata = []
+                        
+                        for chunk, meta in chunks_with_meta:
+                            pdf_chunks.append(chunk)
+                            pdf_metadata.append(meta)
+                        
+                        if pdf_chunks:
+                            # Generate embeddings for this PDF
+                            logger.info(f"🔄 Generating embeddings for {len(pdf_chunks)} chunks from {pdf_file.name}...")
+                            pdf_embeddings = self.embedding_model.encode(
+                                pdf_chunks,
+                                show_progress_bar=True,
+                                convert_to_numpy=True
+                            )
+                            
+                            # Save to cache
+                            self._save_to_cache(str(pdf_file), pdf_chunks, pdf_metadata, pdf_embeddings)
+                            
+                            # Add to collection
+                            all_chunks.extend(pdf_chunks)
+                            all_metadata.extend(pdf_metadata)
+                            all_embeddings_list.append(pdf_embeddings)
+                            
+                            logger.info(f"✅ Created {len(pdf_chunks)} chunks from {pdf_file.name}")
                     
             except Exception as e:
                 logger.error(f"Error processing {pdf_file.name}: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
                 continue
         
         if not all_chunks:
             logger.warning("No chunks created from PDFs")
             return 0
         
-        # Generate embeddings for all chunks
-        logger.info(f"Generating embeddings for {len(all_chunks)} chunks...")
+        # Combine all embeddings
         self.chunks = all_chunks
         self.metadata = all_metadata
-        self.embeddings = self.embedding_model.encode(
-            all_chunks,
-            show_progress_bar=True,
-            convert_to_numpy=True
-        )
+        self.embeddings = np.vstack(all_embeddings_list) if all_embeddings_list else np.array([])
         
-        logger.info(f"Knowledge base created with {len(self.chunks)} chunks")
+        logger.info(f"✨ Knowledge base ready with {len(self.chunks)} chunks from {len(pdf_files)} books")
         return len(self.chunks)
     
     def semantic_search(self, query: str, top_k: int = None) -> List[Tuple[str, dict, float]]:
