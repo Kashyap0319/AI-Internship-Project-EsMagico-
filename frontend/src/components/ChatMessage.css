@@ -58,6 +58,12 @@
   border-radius: 16px;
   padding: 16px 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark-mode .message-bubble {
+  background: #1f2937;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .user-message .message-bubble {
@@ -69,6 +75,15 @@
   margin: 0;
   line-height: 1.6;
   font-size: 15px;
+  color: #111827;
+}
+
+.dark-mode .message-text {
+  color: #f9fafb;
+}
+
+.user-message .message-text {
+  color: white;
 }
 
 /* Image */
@@ -120,9 +135,18 @@
   transition: all 0.2s;
 }
 
+.dark-mode .audio-button {
+  background: #374151;
+  color: #d1d5db;
+}
+
 .audio-button:hover {
   background: #e2e8f0;
   transform: translateY(-1px);
+}
+
+.dark-mode .audio-button:hover {
+  background: #4b5563;
 }
 
 .user-message .audio-button {
@@ -141,6 +165,10 @@
   padding-top: 12px;
 }
 
+.dark-mode .message-sources {
+  border-top-color: #374151;
+}
+
 .user-message .message-sources {
   border-top-color: rgba(255, 255, 255, 0.2);
 }
@@ -153,12 +181,20 @@
   padding: 4px 0;
 }
 
+.dark-mode .message-sources summary {
+  color: #9ca3af;
+}
+
 .user-message .message-sources summary {
   color: rgba(255, 255, 255, 0.9);
 }
 
 .message-sources summary:hover {
   color: #475569;
+}
+
+.dark-mode .message-sources summary:hover {
+  color: #d1d5db;
 }
 
 .user-message .message-sources summary:hover {
@@ -179,6 +215,10 @@
   font-size: 13px;
 }
 
+.dark-mode .source-item {
+  background: #1f2937;
+}
+
 .user-message .source-item {
   background: rgba(255, 255, 255, 0.1);
 }
@@ -195,6 +235,10 @@
   color: #475569;
 }
 
+.dark-mode .source-name {
+  color: #d1d5db;
+}
+
 .user-message .source-name {
   color: white;
 }
@@ -207,6 +251,11 @@
   border-radius: 12px;
 }
 
+.dark-mode .source-score {
+  background: rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+}
+
 .user-message .source-score {
   background: rgba(255, 255, 255, 0.2);
   color: rgba(255, 255, 255, 0.8);
@@ -216,6 +265,10 @@
   margin: 0;
   color: #64748b;
   line-height: 1.5;
+}
+
+.dark-mode .source-text {
+  color: #9ca3af;
 }
 
 .user-message .source-text {

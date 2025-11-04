@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
-import { BookOpen, Send, Sparkles, Volume2, Image as ImageIcon, Mic, MicOff, Globe } from 'lucide-react'
+import { BookOpen, Send, Sparkles, Volume2, Image as ImageIcon, Mic, MicOff, Globe, Plus, Settings, Moon, Sun, Menu, X, Clock, MessageSquare } from 'lucide-react'
 import './App.css'
 import ChatMessage from './components/ChatMessage'
 import SuggestionPill from './components/SuggestionPill'
@@ -17,7 +17,11 @@ function App() {
   const [selectedLanguage, setSelectedLanguage] = useState('en')
   const [isRecording, setIsRecording] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState(null)
-  const [sessionId] = useState(() => `session_${Date.now()}`)
+  const [sessionId, setSessionId] = useState(() => `session_${Date.now()}`)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [darkMode, setDarkMode] = useState(false)
+  const [chatHistory, setChatHistory] = useState([])
+  const [currentChatTitle, setCurrentChatTitle] = useState('')
   const messagesEndRef = useRef(null)
 
   // Fetch suggestions and languages on mount
@@ -46,6 +50,49 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode')
+    } else {
+      document.body.classList.remove('dark-mode')
+    }
+  }, [darkMode])
+
+  // Generate chat title from first message
+  useEffect(() => {
+    if (messages.length > 0 && !currentChatTitle) {
+      const firstUserMsg = messages.find(m => m.role === 'user')
+      if (firstUserMsg) {
+        const title = firstUserMsg.content.slice(0, 40) + (firstUserMsg.content.length > 40 ? '...' : '')
+        setCurrentChatTitle(title)
+      }
+    }
+  }, [messages, currentChatTitle])
+
+  const handleNewChat = () => {
+    // Save current chat to history if it has messages
+    if (messages.length > 0 && currentChatTitle) {
+      const chatSummary = {
+        id: sessionId,
+        title: currentChatTitle,
+        timestamp: new Date(),
+        messageCount: messages.length
+      }
+      setChatHistory(prev => [chatSummary, ...prev.slice(0, 9)]) // Keep last 10 chats
+    }
+
+    // Reset chat state
+    setMessages([])
+    setSessionId(`session_${Date.now()}`)
+    setCurrentChatTitle('')
+    setInputValue('')
+  }
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev)
+  }
 
   const handleSend = async (question = null) => {
     const textToSend = question || inputValue.trim()
@@ -182,185 +229,190 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      <div className="chat-container">
-        {/* Header */}
-        <div className="chat-header">
-          <div className="header-content">
-            <div className="logo-wrapper">
-              <BookOpen className="header-icon" size={32} />
-              <div className="logo-glow"></div>
-            </div>
-            <div className="header-text">
-              <h1 className="header-title">
-                <span className="gradient-text">Ask The Storytell AI</span>
-              </h1>
-              <p className="header-subtitle">
-                <Sparkles size={14} className="sparkle-icon" />
-                Where Classic Tales Meet Modern Sass & AI Magic
-                <Sparkles size={14} className="sparkle-icon" />
-              </p>
-            </div>
+    <div className={`app-wrapper ${darkMode ? 'dark-mode' : ''}`}>
+      {/* Sidebar */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <BookOpen size={24} />
+            <span className="logo-text">Storytell AI</span>
           </div>
+          <button className="new-chat-btn" onClick={handleNewChat}>
+            <Plus size={18} />
+            New Chat
+          </button>
         </div>
 
-        {/* Book Showcase */}
-        <div className="books-showcase">
-          <p className="books-title">📖 Featured Story Collection</p>
-          <div className="books-grid">
-            <div className="book-card">
-              <div className="book-cover-wrapper">
-                <img 
-                  src="/covers/alice.jpg" 
-                  alt="Alice in Wonderland"
-                  className="book-cover-image"
-                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                />
-                <div className="book-cover alice fallback">🎩</div>
+        <div className="sidebar-content">
+          <div className="knowledge-sources">
+            <h3 className="sidebar-section-title">
+              <Sparkles size={16} />
+              Knowledge Sources
+            </h3>
+            <div className="source-list">
+              <div className="source-item active">
+                <div className="source-icon">🎩</div>
+                <div className="source-info">
+                  <div className="source-name">Alice in Wonderland</div>
+                  <div className="source-meta">190 passages</div>
+                </div>
               </div>
-              <p className="book-title">Alice in Wonderland</p>
-            </div>
-            <div className="book-card">
-              <div className="book-cover-wrapper">
-                <img 
-                  src="/covers/gulliver.jpg" 
-                  alt="Gulliver's Travels"
-                  className="book-cover-image"
-                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                />
-                <div className="book-cover gulliver fallback">⛵</div>
+              <div className="source-item active">
+                <div className="source-icon">⛵</div>
+                <div className="source-info">
+                  <div className="source-name">Gulliver's Travels</div>
+                  <div className="source-meta">749 passages</div>
+                </div>
               </div>
-              <p className="book-title">Gulliver's Travels</p>
-            </div>
-            <div className="book-card">
-              <div className="book-cover-wrapper">
-                <img 
-                  src="/covers/arabian.jpg" 
-                  alt="Arabian Nights"
-                  className="book-cover-image"
-                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                />
-                <div className="book-cover arabian fallback">🧞</div>
+              <div className="source-item active">
+                <div className="source-icon">🧞</div>
+                <div className="source-info">
+                  <div className="source-name">Arabian Nights</div>
+                  <div className="source-meta">1224 passages</div>
+                </div>
               </div>
-              <p className="book-title">Arabian Nights</p>
             </div>
           </div>
-        </div>
 
-        {/* Messages Area */}
-        <div className="messages-area">
-          {messages.length === 0 && (
-            <div className="welcome-message">
-              <Sparkles size={48} className="welcome-icon" />
-              <h2>Welcome to the Storytelling Universe!</h2>
-              <p>Ask me anything about classic tales like Alice in Wonderland or Gulliver's Travels.</p>
-              <p className="welcome-hint">I'll reply with witty commentary, beautiful illustrations, and even narrate the story! 🎭</p>
+          {chatHistory.length > 0 && (
+            <div className="chat-history">
+              <h3 className="sidebar-section-title">
+                <Clock size={16} />
+                Recent Chats
+              </h3>
+              <div className="history-list">
+                {chatHistory.map((chat) => (
+                  <div key={chat.id} className="history-item">
+                    <MessageSquare size={14} />
+                    <span>{chat.title}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-
-          {messages.map((msg, idx) => (
-            <ChatMessage key={idx} message={msg} />
-          ))}
-
-          {isLoading && (
-            <div className="loading-indicator">
-              <div className="loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-              <p>Crafting a witty response...</p>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
         </div>
 
-        {/* Suggestions - Always show, not just when empty */}
-        {suggestions.length > 0 && (
-          <div className="suggestions-container">
-            <p className="suggestions-label">{messages.length === 0 ? 'Try asking:' : 'More questions:'}</p>
-            <div className="suggestions-pills">
-              {visibleSuggestions.map((suggestion, idx) => (
-                <SuggestionPill 
-                  key={idx} 
-                  text={suggestion}
-                  onClick={() => handleSend(suggestion)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="sidebar-footer">
+          <button className="sidebar-action" onClick={toggleDarkMode}>
+            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+          <button className="sidebar-action">
+            <Settings size={18} />
+            <span>Settings</span>
+          </button>
+        </div>
+      </aside>
 
-        {/* Input Area */}
-        <div className="input-area">
-          <div className="input-container">
-            {/* Language Selector */}
-            <div className="language-selector">
+      {/* Main Content */}
+      <main className="main-content">
+        {/* Top Bar */}
+        <header className="top-bar">
+          <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          
+          <div className="top-bar-title">
+            <Sparkles size={20} className="title-icon" />
+            <h1>Ask The Storytell AI</h1>
+          </div>
+
+          <div className="top-bar-actions">
+            <div className="language-selector-compact">
               <Globe size={16} />
               <select 
                 value={selectedLanguage} 
                 onChange={(e) => setSelectedLanguage(e.target.value)}
-                className="language-dropdown"
+                className="language-dropdown-compact"
               >
                 {Object.entries(languages).map(([code, name]) => (
                   <option key={code} value={code}>{name}</option>
                 ))}
               </select>
             </div>
+          </div>
+        </header>
+
+        {/* Chat Area */}
+        <div className="chat-area">
+          <div className="messages-container">
+            {messages.length === 0 && (
+              <div className="welcome-message-modern">
+                <div className="welcome-content">
+                  <Sparkles size={56} className="welcome-icon-modern" />
+                  <h2>Ask me anything about Alice, Gulliver, or Arabian adventures</h2>
+                  <p className="welcome-hint-modern">Get witty answers • AI illustrations • Audio narration</p>
+                  
+                  {suggestions.length > 0 && (
+                    <div className="welcome-suggestions">
+                      {visibleSuggestions.map((suggestion, idx) => (
+                        <button
+                          key={idx}
+                          className="suggestion-card"
+                          onClick={() => handleSend(suggestion)}
+                        >
+                          <MessageSquare size={16} />
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {messages.map((msg, idx) => (
+              <ChatMessage key={idx} message={msg} />
+            ))}
+
+            {isLoading && (
+              <div className="loading-indicator-modern">
+                <div className="loading-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <p>Crafting witty response...</p>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* Input Area - Fixed at bottom */}
+        <div className="input-area-modern">
+          <div className="input-wrapper">
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`mic-button-modern ${isRecording ? 'recording' : ''}`}
+              disabled={isLoading}
+              title={isRecording ? 'Stop recording' : 'Voice input'}
+            >
+              {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+            </button>
             
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask about the stories..."
+              placeholder="Ask about Alice, Gulliver, or Arabian adventures..."
               disabled={isLoading}
-              className="chat-input"
+              className="chat-input-modern"
             />
-            
-            {/* Mic Button with Recording Indicator */}
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`mic-button ${isRecording ? 'recording' : ''}`}
-              disabled={isLoading}
-              title={isRecording ? 'Stop recording' : 'Voice input'}
-            >
-              {isRecording ? (
-                <>
-                  <MicOff size={20} />
-                  <span className="recording-pulse"></span>
-                </>
-              ) : (
-                <Mic size={20} />
-              )}
-            </button>
-            {isRecording && <span className="recording-text">🔴 Recording...</span>}
             
             <button
               onClick={() => handleSend()}
               disabled={!inputValue.trim() || isLoading}
-              className="send-button"
+              className="send-button-modern"
+              title="Send message"
             >
               <Send size={20} />
             </button>
           </div>
-          <div className="input-footer">
-            <span className="feature-badge">
-              <Sparkles size={14} /> AI Illustrations
-            </span>
-            <span className="feature-badge">
-              <Volume2 size={14} /> Audio Narration
-            </span>
-            <span className="feature-badge">
-              <Mic size={14} /> Voice Input
-            </span>
-            <span className="feature-badge">
-              <Globe size={14} /> Multi-lingual
-            </span>
-          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

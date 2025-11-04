@@ -83,12 +83,27 @@ class Storyteller:
         is_relevant = self._is_relevant(results)
         
         if not is_relevant:
-            # Return witty fallback
+            # Return witty fallback but still try to generate media so UI always shows a photo/audio
             fallback = self._get_fallback_message(language)
+
+            image_url = None
+            audio_url = None
+            if generate_image and config.IMAGE_GENERATION_ENABLED:
+                try:
+                    image_url = await self._generate_image(question, fallback)
+                except Exception as _e:
+                    image_url = None
+
+            if generate_audio and config.AUDIO_ENABLED:
+                try:
+                    audio_url = await self._generate_audio(fallback, language)
+                except Exception as _e:
+                    audio_url = None
+
             return {
                 "answer": fallback,
-                "image_url": None,
-                "audio_url": None,
+                "image_url": image_url,
+                "audio_url": audio_url,
                 "is_relevant": False,
                 "sources": []
             }
@@ -270,8 +285,12 @@ class Storyteller:
             
             logger.info("🎨 Generating AI image from answer...")
             
-            # Create enhanced image prompt from answer
-            prompt = self._create_image_prompt_from_answer(answer)
+            # Create enhanced image prompt from question+answer for better relevance even on fallback
+            try:
+                prompt = self._create_image_prompt(question, answer)
+            except Exception:
+                # Fallback to simple prompt from answer
+                prompt = self._create_image_prompt_from_answer(answer)
             
             # Use Pollinations.ai FREE image generation
             import urllib.parse

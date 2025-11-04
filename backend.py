@@ -3,7 +3,7 @@ FastAPI Backend for Ask The Storytell AI
 Handles API requests for chat, image generation, audio generation, and audio transcription
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -147,7 +147,7 @@ async def transcribe_audio(audio: UploadFile = File(...)):
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, http_request: Request):
     """
     Main chat endpoint - processes question and returns multimodal response
     Supports conversation history and multi-language
@@ -193,6 +193,17 @@ async def chat(request: ChatRequest):
         
         conversation_sessions[session_id] = conversation_history
         
+        # Normalize media URLs to absolute using request base URL to avoid broken links across origins/proxies
+        try:
+            base_url = str(http_request.base_url).rstrip('/')
+            for key in ("image_url", "audio_url"):
+                url_val = result.get(key)
+                if isinstance(url_val, str) and url_val.startswith("/"):
+                    result[key] = f"{base_url}{url_val}"
+        except Exception as _e:
+            # Non-fatal; keep relative URLs if any issue occurs
+            pass
+
         # Add history to response
         result["conversation_history"] = conversation_history
         
