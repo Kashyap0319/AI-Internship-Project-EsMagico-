@@ -255,7 +255,7 @@ class Storyteller:
     
     async def _generate_image(self, question: str, answer: str) -> str:
         """
-        Generate AI image based on answer content using Pollinations.ai (FREE)
+        Generate AI image using Pollinations.ai (FREE, fast, reliable)
         
         Args:
             question: Original question
@@ -270,24 +270,20 @@ class Storyteller:
             
             logger.info("🎨 Generating AI image from answer...")
             
-            # Create image prompt from answer
+            # Create enhanced image prompt from answer
             prompt = self._create_image_prompt_from_answer(answer)
             
-            # Use Pollinations.ai FREE image generation API
-            # No API key needed, just URL-based generation
+            # Use Pollinations.ai FREE image generation
             import urllib.parse
             encoded_prompt = urllib.parse.quote(prompt)
             
-            # Pollinations.ai endpoint (totally free, no limits)
             image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=512&height=512&model=flux&nologo=true&enhance=true"
             
-            # Download and save the image
             async with aiohttp.ClientSession() as session:
                 async with session.get(image_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
                     if response.status == 200:
                         image_data = await response.read()
                         
-                        # Save image locally
                         filename = hashlib.md5(prompt.encode()).hexdigest() + ".png"
                         filepath = config.IMAGES_DIR / filename
                         
@@ -306,18 +302,20 @@ class Storyteller:
     
     def _create_image_prompt_from_answer(self, answer: str) -> str:
         """Create AI image prompt from the answer content"""
-        # Remove emojis and clean text
         import re
+        # Remove emojis and clean text
         clean_answer = re.sub(r'[^\w\s.,!?\'\"-]', '', answer)
         
         # Take first 2 sentences for context
         sentences = clean_answer.split('.')[:2]
         context = '. '.join(sentences).strip()
         
-        # Create storybook illustration prompt
-        prompt = f"Whimsical storybook illustration: {context}. Fantasy art style, colorful, magical, detailed, classic literature, fairy tale aesthetic"
+        # Enhanced prompt for better images
+        prompt = f"""A beautiful whimsical storybook illustration of: {context}. 
+        Art style: fantasy storybook painting, vibrant colors, magical atmosphere, 
+        detailed characters, fairy tale aesthetic, classic literature illustration"""
         
-        return prompt[:500]  # Limit length
+        return prompt[:800]
     
     async def _generate_audio(self, text: str, language: str = "en") -> str:
         """
@@ -331,16 +329,28 @@ class Storyteller:
             URL path to generated audio
         """
         if not config.ELEVENLABS_API_KEY:
-            logger.warning("ELEVENLABS_API_KEY not set")
+            logger.warning("⚠️ ELEVENLABS_API_KEY not set - skipping audio generation")
+            return None
+        
+        if not config.AUDIO_ENABLED:
+            logger.info("ℹ️ Audio generation disabled in config")
             return None
         
         try:
+            logger.info(f"🎵 Starting audio generation for {len(text)} chars...")
+            
             # Clean text for TTS (remove emojis)
             import re
             clean_text = re.sub(r'[^\w\s.,!?\'\"-]', '', text)
             
+            if len(clean_text) == 0:
+                logger.warning("⚠️ No text to generate audio from")
+                return None
+            
             # Call ElevenLabs API
             url = f"{config.ELEVENLABS_API_URL}/{config.ELEVENLABS_VOICE_ID}"
+            
+            logger.info(f"📡 Calling ElevenLabs API: {url}")
             
             async with aiohttp.ClientSession() as session:
                 headers = {
@@ -349,7 +359,7 @@ class Storyteller:
                 }
                 
                 payload = {
-                    "text": clean_text,
+                    "text": clean_text[:500],  # Limit to 500 chars for faster generation
                     "model_id": "eleven_multilingual_v2" if language != "en" else "eleven_monolingual_v1",
                     "voice_settings": {
                         "stability": config.AUDIO_STABILITY,
@@ -357,10 +367,10 @@ class Storyteller:
                     }
                 }
                 
-                async with session.post(url, headers=headers, json=payload) as response:
+                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
                     if response.status != 200:
                         error_text = await response.text()
-                        logger.error(f"ElevenLabs API error: {error_text}")
+                        logger.error(f"❌ ElevenLabs API error {response.status}: {error_text}")
                         return None
                     
                     audio_data = await response.read()
@@ -372,11 +382,11 @@ class Storyteller:
                     with open(filepath, "wb") as f:
                         f.write(audio_data)
                     
-                    logger.info(f"✅ Audio generated: {filename}")
+                    logger.info(f"✅ Audio generated successfully: {filename} ({len(audio_data)} bytes)")
                     return f"/static/audio/{filename}"
                     
         except Exception as e:
-            logger.error(f"❌ Error generating audio: {str(e)}")
+            logger.error(f"❌ Error generating audio: {str(e)}", exc_info=True)
             return None
     
     async def transcribe_audio(self, audio_path: str) -> str:

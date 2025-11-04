@@ -8,10 +8,10 @@ echo.
 cd /d "%~dp0"
 
 echo [1/2] Starting Backend Server...
-start "Backend Server" cmd /k "C:\Users\Shrey\AppData\Local\Microsoft\WindowsApps\python3.12.exe run_server.py"
+start "Backend Server" cmd /k "python run_server.py"
 
-echo [2/2] Waiting 15 seconds for backend...
-timeout /t 15 /nobreak >nul
+echo [2/2] Waiting 10 seconds for backend...
+timeout /t 10 /nobreak >nul
 
 echo Starting Frontend...
 cd frontend

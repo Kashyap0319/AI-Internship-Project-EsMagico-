@@ -1,34 +1,34 @@
 @echo off
-echo ========================================
-echo   Ask The Storytell AI - Quick Launch
-echo ========================================
+cls
+echo ============================================================
+echo   Ask The Storytell AI - LAUNCHER
+echo ============================================================
 echo.
 
-echo [1/2] Starting Backend Server...
-start "Backend Server" cmd /k "cd /d "%~dp0" && C:\Users\Shrey\AppData\Local\Microsoft\WindowsApps\python3.12.exe run_server.py"
+cd /d "%~dp0"
 
-echo [2/2] Waiting for backend to initialize (30 seconds)...
-timeout /t 30 /nobreak > nul
+echo [1/2] Starting Backend...
+start "Storytell Backend" cmd /k "python run_server.py"
 
-echo.
+echo [2/2] Waiting 10 seconds for backend...
+timeout /t 10 /nobreak >nul
+
 echo Starting Frontend...
-start "Frontend Server" cmd /k "cd /d "%~dp0frontend" && npm run dev"
+cd frontend
+start "Storytell Frontend" cmd /k "npm run dev"
+
+timeout /t 3 /nobreak >nul
 
 echo.
-echo ========================================
-echo   Servers are starting!
-echo ========================================
-echo   Backend:  http://localhost:9000
+echo ============================================================
+echo   SERVERS RUNNING!
+echo ============================================================
+echo   Backend:  http://localhost:9000/docs
 echo   Frontend: http://localhost:5173
-echo ========================================
+echo ============================================================
 echo.
-echo Press any key to open browser...
-pause > nul
-
+echo Opening browser...
+timeout /t 2 /nobreak >nul
 start http://localhost:5173
 
-echo.
-echo Servers are running in separate windows.
-echo Close those windows to stop the servers.
-echo.
-pause
+exit

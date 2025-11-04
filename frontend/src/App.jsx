@@ -67,7 +67,7 @@ function App() {
       const response = await axios.post(`${API_BASE}/chat`, {
         question: textToSend,
         generate_image: true,  // Always generate images
-        generate_audio: true,
+        generate_audio: true,  // Enable audio narration
         language: selectedLanguage,
         session_id: sessionId
       })
@@ -187,10 +187,19 @@ function App() {
         {/* Header */}
         <div className="chat-header">
           <div className="header-content">
-            <BookOpen className="header-icon" size={32} />
-            <div>
-              <h1 className="header-title">Ask The Storytell AI</h1>
-              <p className="header-subtitle">Witty tales from classic storybooks 📚✨</p>
+            <div className="logo-wrapper">
+              <BookOpen className="header-icon" size={32} />
+              <div className="logo-glow"></div>
+            </div>
+            <div className="header-text">
+              <h1 className="header-title">
+                <span className="gradient-text">Ask The Storytell AI</span>
+              </h1>
+              <p className="header-subtitle">
+                <Sparkles size={14} className="sparkle-icon" />
+                Where Classic Tales Meet Modern Sass & AI Magic
+                <Sparkles size={14} className="sparkle-icon" />
+              </p>
             </div>
           </div>
         </div>
