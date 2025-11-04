@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Data (vector embeddings are generated at runtime)
+data/vectordb/
+
+# Keep PDFs but ignore backups
+data/*.backup
+
+# Models (downloaded at runtime)
+models/
+*.pth
+*.bin
+*.safetensors
+
+# Generated content (created by APIs at runtime)
+static/images/*.png
+static/images/*.jpg
+static/images/*.jpeg
+static/audio/*.mp3
+static/audio/*.wav
+
+# Test files
+test_*.json
+backend_log.txt
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
