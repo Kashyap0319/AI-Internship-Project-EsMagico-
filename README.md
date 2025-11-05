@@ -6,6 +6,14 @@
 
 ---
 
+### 🎥 **Watch Demo Video**
+
+[![Watch the demo](https://img.shields.io/badge/▶️_Watch_Live_Demo-Loom-6e5fd9?style=for-the-badge&logo=loom)](https://loom.com/share/91a493329c4e41caa514f1766da59bb1)
+
+**See the full working application in action!** 🚀
+
+---
+
 ### 🚀 **NEW USER? Start Here!**
 
 ```powershell
